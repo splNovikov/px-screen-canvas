@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT Solutions - Interactive Flow</title>
+    <style>
+        :root {
+            --color-primary: #008b8b;
+            --color-secondary: #ffffff;
+            --color-accent: #008b8b;
+            --color-dark: #ffffff;
+            --color-darker: #ffffff;
+            --color-text: #0a0a0a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: var(--color-secondary);
+            overflow: hidden;
+            color: var(--color-text);
+        }
+
+        .hero-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: block;
+            z-index: 1;
+        }
+
+        .content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            max-width: 900px;
+            padding: 40px;
+            animation: fadeIn 1.2s ease-out 0.5s both;
+        }
+
+        .top-label {
+            font-size: 12px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--color-text);
+            margin-bottom: 20px;
+            font-weight: 600;
+            opacity: 0;
+            animation: slideDown 0.8s ease-out 0.3s both;
+            text-shadow: 0 0 10px rgba(0, 139, 139, 0.3);
+        }
+
+        h1 {
+            font-size: clamp(36px, 8vw, 72px);
+            font-weight: 900;
+            margin-bottom: 20px;
+            letter-spacing: -1px;
+            line-height: 1.1;
+            color: var(--color-text);
+            opacity: 0;
+            animation: slideUp 1s ease-out 0.4s both;
+            text-shadow: 0 2px 20px rgba(0, 139, 139, 0.2);
+        }
+
+        .subtitle {
+            font-size: clamp(16px, 2vw, 24px);
+            color: rgba(10, 10, 10, 0.7);
+            margin-bottom: 40px;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+            opacity: 0;
+            animation: slideUp 1s ease-out 0.6s both;
+        }
+
+        .tech-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+            opacity: 0;
+            animation: slideUp 1s ease-out 0.8s both;
+        }
+
+        .feature {
+            padding: 20px;
+            background: rgba(10, 10, 10, 0.02);
+            border: 1px solid rgba(10, 10, 10, 0.1);
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .feature:hover {
+            background: rgba(10, 10, 10, 0.05);
+            border-color: rgba(0, 139, 139, 0.3);
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 139, 139, 0.15);
+        }
+
+        .feature-icon {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .feature-text {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 14px 40px;
+            background: var(--color-text);
+            color: var(--color-secondary);
+            border: 1px solid var(--color-text);
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0;
+            animation: slideUp 1s ease-out 1s both;
+            box-shadow: 0 0 30px rgba(0, 139, 139, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: left 0.5s ease;
+        }
+
+        .cta-button:hover::before {
+            left: 100%;
+        }
+
+        .cta-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 50px rgba(0, 139, 139, 0.4);
+            background: var(--color-text);
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            opacity: 0;
+            animation: fadeIn 1s ease-out 1.5s both;
+        }
+
+        .scroll-icon {
+            width: 24px;
+            height: 40px;
+            border: 2px solid var(--color-text);
+            border-radius: 12px;
+            position: relative;
+            margin: 0 auto 10px;
+            box-shadow: 0 0 10px rgba(0, 139, 139, 0.2);
+        }
+
+        .scroll-icon::after {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 8px;
+            background: var(--color-text);
+            border-radius: 2px;
+            animation: scroll-bounce 2s infinite;
+        }
+
+        @keyframes scroll-bounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(10px); }
+        }
+
+        .scroll-text {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--color-text);
+            text-shadow: 0 0 5px rgba(0, 139, 139, 0.2);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
+
+            .tech-features {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            h1 {
+                font-size: 36px;
+            }
+
+            .subtitle {
+                font-size: 16px;
+                margin-bottom: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="hero-container">
+        <canvas id="canvas"></canvas>
+        
+        <div class="content">
+            <div class="top-label">Индустриальное масштабирование</div>
+            
+            <h1>IT-решения нового поколения</h1>
+            
+            <p class="subtitle">
+                Архитектура для миллионов. Технология для будущего.
+            </p>
+            
+            <div class="tech-features">
+                <div class="feature">
+                    <div class="feature-icon">⚡</div>
+                    <div class="feature-text">High Performance</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🔐</div>
+                    <div class="feature-text">Enterprise Grade</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📈</div>
+                    <div class="feature-text">Масштабируемость</div>
+                </div>
+            </div>
+            
+            <button class="cta-button">Начать сейчас</button>
+        </div>
+
+        <div class="scroll-indicator">
+            <div class="scroll-icon"></div>
+            <div class="scroll-text">Scroll</div>
+        </div>
+    </div>
+
+    <script>
+        class HexagonalNetwork {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.nodes = [];
+                this.connections = [];
+                this.mouse = { x: 0, y: 0, active: false, vx: 0, vy: 0, lastMoveTime: 0 };
+                this.time = 0;
+                this.animationId = null;
+                
+                // Hexagonal grid parameters - optimized for performance
+                this.hexSize = 80; // Increased to reduce node count
+                this.connectionDistance = 140;
+                this.connectionDistanceSq = this.connectionDistance * this.connectionDistance; // Pre-calculate squared distance
+                
+                // Performance optimizations
+                this.frameSkip = 0;
+                this.maxFrameSkip = 1; // Skip every other frame for non-critical updates
+                
+                // New visual effects systems
+                this.particles = []; // Particle system
+                this.dataWaves = []; // Data waves on connections
+                this.lightRays = []; // Light rays from cursor
+                this.clusterPulses = []; // Cluster pulse effects
+                this.maxParticles = 50; // Limit particles for performance
+                this.maxRays = 8; // Maximum light rays
+                
+                // Effect intensity based on mouse movement
+                this.effectIntensity = 1.0; // 0.0 to 1.0
+                this.intensityDecayRate = 0.02; // How fast intensity decreases when idle
+                this.intensityRecoveryRate = 0.05; // How fast intensity recovers when moving
+                this.mouseMovementThreshold = 0.5; // Minimum movement to consider mouse active
+                
+                this.setup();
+                this.initHexGrid();
+                this.bindEvents();
+                this.animate();
+            }
+
+            setup() {
+                this.canvas.width = window.innerWidth * window.devicePixelRatio;
+                this.canvas.height = window.innerHeight * window.devicePixelRatio;
+                this.canvas.style.width = window.innerWidth + 'px';
+                this.canvas.style.height = window.innerHeight + 'px';
+                this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+                this.width = window.innerWidth;
+                this.height = window.innerHeight;
+            }
+
+            initHexGrid() {
+                this.nodes = [];
+                const hexHeight = this.hexSize * Math.sqrt(3);
+                const hexWidth = this.hexSize * 2;
+                
+                // Create hexagonal grid
+                const cols = Math.ceil(this.width / (hexWidth * 0.75)) + 2;
+                const rows = Math.ceil(this.height / hexHeight) + 2;
+                
+                for (let row = -1; row < rows; row++) {
+                    for (let col = -1; col < cols; col++) {
+                        const x = col * hexWidth * 0.75;
+                        const y = row * hexHeight + (col % 2 === 0 ? 0 : hexHeight / 2);
+                        
+                        if (x > -50 && x < this.width + 50 && y > -50 && y < this.height + 50) {
+                            this.nodes.push({
+                                x: x,
+                                y: y,
+                                baseX: x,
+                                baseY: y,
+                        phase: Math.random() * Math.PI * 2,
+                                pulsePhase: Math.random() * Math.PI * 2,
+                                clusterPhase: Math.random() * Math.PI * 2, // For cluster pulsing
+                                size: 3 + Math.random() * 2,
+                                opacity: 0.3 + Math.random() * 0.4,
+                                active: false,
+                                connections: [],
+                                clusterId: Math.floor(Math.random() * 5) // Group nodes into clusters
+                            });
+                        }
+                    }
+                }
+                
+                // Build connection graph
+                this.buildConnections();
+            }
+
+            buildConnections() {
+                // Optimized: use squared distance to avoid expensive sqrt
+                for (let i = 0; i < this.nodes.length; i++) {
+                    this.nodes[i].connections = [];
+                    for (let j = i + 1; j < this.nodes.length; j++) {
+                        const dx = this.nodes[i].baseX - this.nodes[j].baseX;
+                        const dy = this.nodes[i].baseY - this.nodes[j].baseY;
+                        const distSq = dx * dx + dy * dy;
+                        
+                        if (distSq < this.connectionDistanceSq) {
+                            this.nodes[i].connections.push(j);
+                            this.nodes[j].connections.push(i);
+                        }
+                    }
+                }
+            }
+
+            bindEvents() {
+                let lastMouseX = 0;
+                let lastMouseY = 0;
+                
+                document.addEventListener('mousemove', (e) => {
+                    // Calculate mouse velocity for particle emission
+                    this.mouse.vx = e.clientX - lastMouseX;
+                    this.mouse.vy = e.clientY - lastMouseY;
+                    const movementSpeed = Math.sqrt(this.mouse.vx * this.mouse.vx + this.mouse.vy * this.mouse.vy);
+                    
+                    lastMouseX = e.clientX;
+                    lastMouseY = e.clientY;
+                    
+                    this.mouse.x = e.clientX;
+                    this.mouse.y = e.clientY;
+                    this.mouse.active = true;
+                    this.mouse.lastMoveTime = this.time; // Update last movement time
+                    
+                    // Emit particles when mouse moves (only if moving fast enough)
+                    if (movementSpeed > this.mouseMovementThreshold) {
+                        this.emitParticles(e.clientX, e.clientY);
+                    }
+                });
+
+                document.addEventListener('mouseleave', () => {
+                    this.mouse.active = false;
+                });
+
+                window.addEventListener('resize', () => this.handleResize());
+            }
+            
+            updateEffectIntensity() {
+                if (!this.mouse.active) {
+                    // Mouse not active - quickly fade out
+                    this.effectIntensity = Math.max(0, this.effectIntensity - this.intensityDecayRate * 2);
+                    return;
+                }
+                
+                // Check if mouse is moving (recent movement)
+                const timeSinceLastMove = this.time - this.mouse.lastMoveTime;
+                const isMoving = timeSinceLastMove < 100; // Consider moving if moved within last 100ms
+                
+                if (isMoving) {
+                    // Mouse is moving - increase intensity
+                    this.effectIntensity = Math.min(1.0, this.effectIntensity + this.intensityRecoveryRate);
+                } else {
+                    // Mouse is idle - decrease intensity
+                    this.effectIntensity = Math.max(0, this.effectIntensity - this.intensityDecayRate);
+                }
+            }
+
+            handleResize() {
+                // Cancel existing animation
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                }
+                this.setup();
+                this.initHexGrid();
+                this.animate();
+            }
+
+            updateNodes() {
+                const mouseDistSq = 200 * 200; // Pre-calculate squared distance
+                
+                // Cluster pulsing effect
+                const clusterPulse = Math.sin(this.time * 0.002) * 0.1;
+                
+                for (let node of this.nodes) {
+                    // Subtle floating animation
+                    const floatX = Math.sin(this.time * 0.001 + node.phase) * 2;
+                    const floatY = Math.cos(this.time * 0.001 + node.phase) * 2;
+                    
+                    node.x = node.baseX + floatX;
+                    node.y = node.baseY + floatY;
+                    
+                    // Cluster pulse effect - nodes in same cluster pulse together
+                    const clusterPulseOffset = Math.sin(this.time * 0.0015 + node.clusterPhase) * clusterPulse;
+                    node.x += Math.cos(node.clusterPhase) * clusterPulseOffset;
+                    node.y += Math.sin(node.clusterPhase) * clusterPulseOffset;
+                    
+                    // Pulse opacity - cache calculation
+                    node.opacity = 0.3 + Math.sin(this.time * 0.003 + node.pulsePhase) * 0.3;
+                    
+                    // Mouse interaction - optimized with squared distance
+                    if (this.mouse.active) {
+                        const dx = this.mouse.x - node.x;
+                        const dy = this.mouse.y - node.y;
+                        const distSq = dx * dx + dy * dy;
+                        
+                        if (distSq < mouseDistSq) {
+                            const dist = Math.sqrt(distSq); // Only calculate sqrt when needed
+                            const force = (1 - dist / 200) * 0.3;
+                            node.x += (dx / dist) * force;
+                            node.y += (dy / dist) * force;
+                            node.active = true;
+                            node.opacity = Math.min(1, node.opacity + 0.2);
+                            
+                            // Emit particles from active nodes - intensity affects spawn rate
+                            if (Math.random() < 0.1 * this.effectIntensity) {
+                                this.emitParticles(node.x, node.y);
+                            }
+                        } else {
+                            node.active = false;
+                        }
+                    } else {
+                        node.active = false;
+                    }
+                }
+            }
+            
+            emitParticles(x, y) {
+                // Limit particle count for performance and only emit if intensity is high enough
+                if (this.particles.length >= this.maxParticles || this.effectIntensity < 0.3) return;
+                
+                // Reduce particle count based on intensity
+                const count = Math.floor((2 + Math.floor(Math.random() * 3)) * this.effectIntensity);
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 1 + Math.random() * 2;
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        life: 1.0,
+                        decay: 0.02 + Math.random() * 0.02,
+                        size: 1 + Math.random() * 2,
+                        opacity: 0.6 + Math.random() * 0.4
+                    });
+                }
+            }
+
+            updateParticles() {
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vx *= 0.98;
+                    p.vy *= 0.98;
+                    p.life -= p.decay;
+                    
+                    if (p.life <= 0 || p.x < 0 || p.x > this.width || p.y < 0 || p.y > this.height) {
+                        this.particles.splice(i, 1);
+                    }
+                }
+            }
+            
+            updateDataWaves() {
+                // Update existing waves
+                for (let i = this.dataWaves.length - 1; i >= 0; i--) {
+                    const wave = this.dataWaves[i];
+                    wave.progress += 0.02;
+                    if (wave.progress >= 1) {
+                        this.dataWaves.splice(i, 1);
+                    }
+                }
+                
+                // Create new waves on active connections - intensity affects spawn rate
+                if (this.mouse.active && Math.random() < 0.15 * this.effectIntensity) {
+                    for (let i = 0; i < this.nodes.length && this.dataWaves.length < 10; i++) {
+                        const nodeA = this.nodes[i];
+                        if (nodeA.active && nodeA.connections.length > 0) {
+                            const connIdx = Math.floor(Math.random() * nodeA.connections.length);
+                            const nodeB = this.nodes[nodeA.connections[connIdx]];
+                            if (nodeB && (nodeA.active || nodeB.active)) {
+                                this.dataWaves.push({
+                                    nodeA: nodeA,
+                                    nodeB: nodeB,
+                                    progress: 0
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            
+            updateLightRays() {
+                if (!this.mouse.active || this.effectIntensity < 0.1) {
+                    this.lightRays = [];
+                    return;
+                }
+                
+                // Find nearest nodes for light rays
+                const nearestNodes = [];
+                const rayDistSq = 250 * 250;
+                
+                for (let node of this.nodes) {
+                    const dx = this.mouse.x - node.x;
+                    const dy = this.mouse.y - node.y;
+                    const distSq = dx * dx + dy * dy;
+                    
+                    if (distSq < rayDistSq) {
+                        nearestNodes.push({ node, distSq });
+                    }
+                }
+                
+                // Sort by distance and take closest ones - reduce count based on intensity
+                nearestNodes.sort((a, b) => a.distSq - b.distSq);
+                const rayCount = Math.floor(this.maxRays * this.effectIntensity);
+                const selectedNodes = nearestNodes.slice(0, rayCount);
+                
+                // Update light rays - apply intensity multiplier
+                this.lightRays = selectedNodes.map(({ node }) => ({
+                    targetX: node.x,
+                    targetY: node.y,
+                    intensity: Math.max(0.3, 1 - Math.sqrt((this.mouse.x - node.x) ** 2 + (this.mouse.y - node.y) ** 2) / 250) * this.effectIntensity
+                }));
+            }
+
+            drawGrid() {
+                // Optimized: batch grid drawing
+                this.ctx.strokeStyle = 'rgba(10, 10, 10, 0.05)';
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                
+                const gridSpacing = 100;
+                // Vertical lines
+                for (let x = 0; x < this.width; x += gridSpacing) {
+                    this.ctx.moveTo(x, 0);
+                    this.ctx.lineTo(x, this.height);
+                }
+                
+                // Horizontal lines
+                for (let y = 0; y < this.height; y += gridSpacing) {
+                    this.ctx.moveTo(0, y);
+                    this.ctx.lineTo(this.width, y);
+                }
+                
+                this.ctx.stroke();
+            }
+
+            drawConnections() {
+                // Optimized: batch connection drawing and remove expensive shadows
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                
+                const drawnConnections = new Set(); // Avoid drawing same connection twice
+                
+                for (let i = 0; i < this.nodes.length; i++) {
+                    const nodeA = this.nodes[i];
+                    
+                    for (let j of nodeA.connections) {
+                        // Avoid duplicate connections
+                        const connKey = i < j ? `${i}-${j}` : `${j}-${i}`;
+                        if (drawnConnections.has(connKey)) continue;
+                        drawnConnections.add(connKey);
+                        
+                        const nodeB = this.nodes[j];
+                        const dx = nodeB.x - nodeA.x;
+                        const dy = nodeB.y - nodeA.y;
+                        const distSq = dx * dx + dy * dy;
+                        
+                        if (distSq < this.connectionDistanceSq) {
+                            const dist = Math.sqrt(distSq);
+                            
+                            // Connection opacity based on distance and activity
+                            const baseOpacity = 0.15;
+                            const activeOpacity = (nodeA.active || nodeB.active) ? 0.25 : 0;
+                            const distanceOpacity = (1 - dist / this.connectionDistance) * 0.15;
+                            const opacity = baseOpacity + activeOpacity + distanceOpacity;
+                            
+                            // Animated pulse along connection
+                            const pulse = Math.sin(this.time * 0.005 + i * 0.1) * 0.5 + 0.5;
+                            const finalOpacity = opacity * pulse;
+                            
+                            // Use simple stroke without expensive shadow
+                            this.ctx.globalAlpha = finalOpacity;
+                            this.ctx.strokeStyle = 'rgba(10, 10, 10, 1)';
+                            this.ctx.moveTo(nodeA.x, nodeA.y);
+                            this.ctx.lineTo(nodeB.x, nodeB.y);
+                        }
+                    }
+                }
+                
+                this.ctx.stroke();
+                this.ctx.globalAlpha = 1.0;
+                
+                // Draw data waves on connections
+                this.drawDataWaves();
+            }
+            
+            drawDataWaves() {
+                for (let wave of this.dataWaves) {
+                    const nodeA = wave.nodeA;
+                    const nodeB = wave.nodeB;
+                    const dx = nodeB.x - nodeA.x;
+                    const dy = nodeB.y - nodeA.y;
+                    
+                    // Calculate wave position along connection
+                    const waveX = nodeA.x + dx * wave.progress;
+                    const waveY = nodeA.y + dy * wave.progress;
+                    
+                    // Draw wave pulse - apply intensity
+                    const waveSize = 8 * (1 - wave.progress);
+                    const waveOpacity = (1 - wave.progress) * 0.6 * this.effectIntensity;
+                    
+                    this.ctx.save();
+                    this.ctx.globalAlpha = waveOpacity;
+                    
+                    // Outer glow
+                    const gradient = this.ctx.createRadialGradient(waveX, waveY, 0, waveX, waveY, waveSize * 2);
+                    gradient.addColorStop(0, 'rgba(0, 139, 139, 0.8)');
+                    gradient.addColorStop(0.5, 'rgba(0, 139, 139, 0.3)');
+                    gradient.addColorStop(1, 'rgba(0, 139, 139, 0)');
+                    
+                    this.ctx.fillStyle = gradient;
+                    this.ctx.beginPath();
+                    this.ctx.arc(waveX, waveY, waveSize * 2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    // Inner dot
+                    this.ctx.fillStyle = 'rgba(0, 139, 139, 0.9)';
+                    this.ctx.beginPath();
+                    this.ctx.arc(waveX, waveY, waveSize * 0.5, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    this.ctx.restore();
+                }
+            }
+            
+            drawLightRays() {
+                if (!this.mouse.active || this.lightRays.length === 0) return;
+                
+                this.ctx.save();
+                // Apply intensity to overall ray opacity
+                this.ctx.globalAlpha = 0.4 * this.effectIntensity;
+                
+                for (let ray of this.lightRays) {
+                    // Create gradient for light ray
+                    const gradient = this.ctx.createLinearGradient(
+                        this.mouse.x, this.mouse.y,
+                        ray.targetX, ray.targetY
+                    );
+                    
+                    const darkTeal = `rgba(0, 139, 139, ${ray.intensity * 0.6})`;
+                    gradient.addColorStop(0, darkTeal);
+                    gradient.addColorStop(0.5, `rgba(0, 139, 139, ${ray.intensity * 0.3})`);
+                    gradient.addColorStop(1, 'rgba(0, 139, 139, 0)');
+                    
+                    this.ctx.strokeStyle = gradient;
+                    this.ctx.lineWidth = 2;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.mouse.x, this.mouse.y);
+                    this.ctx.lineTo(ray.targetX, ray.targetY);
+                    this.ctx.stroke();
+                    
+                    // Glow at target node
+                    const targetGradient = this.ctx.createRadialGradient(
+                        ray.targetX, ray.targetY, 0,
+                        ray.targetX, ray.targetY, 15
+                    );
+                    targetGradient.addColorStop(0, `rgba(0, 139, 139, ${ray.intensity * 0.8})`);
+                    targetGradient.addColorStop(1, 'rgba(0, 139, 139, 0)');
+                    
+                    this.ctx.fillStyle = targetGradient;
+                    this.ctx.beginPath();
+                    this.ctx.arc(ray.targetX, ray.targetY, 15, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+                
+                this.ctx.restore();
+            }
+
+            drawParticles() {
+                for (let p of this.particles) {
+                    this.ctx.save();
+                    // Apply intensity to particle opacity
+                    this.ctx.globalAlpha = p.opacity * p.life * this.effectIntensity;
+                    this.ctx.fillStyle = 'rgba(0, 139, 139, 1)';
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    // Glow effect
+                    const glowGradient = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 3);
+                    glowGradient.addColorStop(0, `rgba(0, 139, 139, ${p.life * 0.3 * this.effectIntensity})`);
+                    glowGradient.addColorStop(1, 'rgba(0, 139, 139, 0)');
+                    this.ctx.fillStyle = glowGradient;
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    this.ctx.restore();
+                }
+            }
+
+            drawNodes() {
+                // Optimized: simplified drawing with subtle glow only for active nodes
+                for (let node of this.nodes) {
+                    const size = node.active ? node.size * 1.5 : node.size;
+                    const opacity = node.active ? Math.min(1, node.opacity + 0.3) : node.opacity;
+                    
+                    this.ctx.save();
+                    this.ctx.translate(node.x, node.y);
+                    
+                    // Subtle dark teal glow for active nodes only (performance optimization)
+                    if (node.active) {
+                        this.ctx.globalAlpha = opacity * 0.15;
+                        this.ctx.fillStyle = 'rgba(0, 139, 139, 1)';
+                        this.ctx.beginPath();
+                        this.ctx.arc(0, 0, size * 3, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                    
+                    this.ctx.globalAlpha = opacity;
+                    
+                    // Hexagon shape - simplified path
+                    this.ctx.beginPath();
+                    for (let i = 0; i < 6; i++) {
+                        const angle = (Math.PI / 3) * i;
+                        const x = Math.cos(angle) * size;
+                        const y = Math.sin(angle) * size;
+                        if (i === 0) {
+                            this.ctx.moveTo(x, y);
+                        } else {
+                            this.ctx.lineTo(x, y);
+                        }
+                    }
+                    this.ctx.closePath();
+                    
+                    // Fill
+                    this.ctx.fillStyle = 'rgba(10, 10, 10, 1)';
+                    this.ctx.fill();
+                    
+                    // Stroke
+                    this.ctx.strokeStyle = 'rgba(10, 10, 10, 0.8)';
+                    this.ctx.lineWidth = node.active ? 2 : 1;
+                    this.ctx.stroke();
+                    
+                    // Center dot
+                    this.ctx.fillStyle = 'rgba(10, 10, 10, 1)';
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, 0, size * 0.3, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    this.ctx.restore();
+                }
+                
+                this.ctx.globalAlpha = 1.0;
+            }
+
+            drawMouseEffect() {
+                if (!this.mouse.active) return;
+
+                // Enhanced dark teal shadow/glow effect - apply intensity
+                const gradient = this.ctx.createRadialGradient(
+                    this.mouse.x, this.mouse.y, 0,
+                    this.mouse.x, this.mouse.y, 250
+                );
+                gradient.addColorStop(0, `rgba(0, 139, 139, ${0.12 * this.effectIntensity})`);
+                gradient.addColorStop(0.3, `rgba(0, 139, 139, ${0.06 * this.effectIntensity})`);
+                gradient.addColorStop(0.6, `rgba(0, 139, 139, ${0.02 * this.effectIntensity})`);
+                gradient.addColorStop(1, 'rgba(0, 139, 139, 0)');
+
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(
+                    this.mouse.x - 250,
+                    this.mouse.y - 250,
+                    500,
+                    500
+                );
+                
+                // Pulsing center dot - apply intensity
+                const pulseSize = (8 + Math.sin(this.time * 0.01) * 3) * this.effectIntensity;
+                const centerGradient = this.ctx.createRadialGradient(
+                    this.mouse.x, this.mouse.y, 0,
+                    this.mouse.x, this.mouse.y, pulseSize
+                );
+                centerGradient.addColorStop(0, `rgba(0, 139, 139, ${0.6 * this.effectIntensity})`);
+                centerGradient.addColorStop(1, 'rgba(0, 139, 139, 0)');
+                
+                this.ctx.fillStyle = centerGradient;
+                this.ctx.beginPath();
+                this.ctx.arc(this.mouse.x, this.mouse.y, pulseSize, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+
+            drawScanlines() {
+                // Optimized: batch scanline drawing
+                this.ctx.fillStyle = 'rgba(10, 10, 10, 0.02)';
+                this.ctx.beginPath();
+                for (let y = 0; y < this.height; y += 4) {
+                    this.ctx.rect(0, y, this.width, 1);
+                }
+                this.ctx.fill();
+            }
+
+            animate() {
+                this.time += 16;
+                this.frameSkip = (this.frameSkip + 1) % (this.maxFrameSkip + 1);
+
+                this.ctx.clearRect(0, 0, this.width, this.height);
+                
+                // White background
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.fillRect(0, 0, this.width, this.height);
+                
+                // Update effect intensity based on mouse movement
+                this.updateEffectIntensity();
+                
+                // Update all systems
+                this.updateNodes();
+                this.updateParticles();
+                this.updateDataWaves();
+                this.updateLightRays();
+                
+                // Draw static elements less frequently
+                if (this.frameSkip === 0) {
+                    this.drawGrid();
+                    this.drawScanlines();
+                }
+                
+                // Draw dynamic elements every frame
+                this.drawConnections(); // Includes data waves
+                this.drawLightRays();
+                this.drawMouseEffect();
+                this.drawParticles();
+                this.drawNodes();
+
+                this.animationId = requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('canvas');
+            new HexagonalNetwork(canvas);
+        });
+    </script>
+</body>
+</html>
