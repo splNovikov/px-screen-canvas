@@ -22,11 +22,11 @@
 
         html, body {
             width: 100%;
-            height: 100%;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
             background: var(--color-secondary);
-            overflow: hidden;
+            overflow-x: hidden;
             color: var(--color-text);
+            scroll-behavior: smooth;
         }
 
         .hero-container {
@@ -38,6 +38,131 @@
             justify-content: center;
             overflow: hidden;
         }
+        
+        .section {
+            min-height: 100vh;
+            padding: 80px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .section-title {
+            font-size: clamp(32px, 6vw, 56px);
+            font-weight: 900;
+            margin-bottom: 20px;
+            letter-spacing: -1px;
+            line-height: 1.2;
+            color: var(--color-text);
+            text-align: center;
+        }
+        
+        .section-subtitle {
+            font-size: clamp(16px, 2vw, 20px);
+            color: rgba(10, 10, 10, 0.7);
+            text-align: center;
+            margin-bottom: 60px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+        
+        .feature-card {
+            padding: 40px 30px;
+            background: rgba(10, 10, 10, 0.02);
+            border: 1px solid rgba(10, 10, 10, 0.1);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .feature-card:hover {
+            background: rgba(10, 10, 10, 0.05);
+            border-color: rgba(0, 64, 128, 0.3);
+            transform: translateY(-8px);
+            box-shadow: 0 10px 30px rgba(0, 64, 128, 0.15);
+        }
+        
+        .feature-card-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .feature-card-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--color-text);
+        }
+        
+        .feature-card-description {
+            font-size: 14px;
+            color: rgba(10, 10, 10, 0.6);
+            line-height: 1.6;
+        }
+        
+        .stats-section {
+            background: rgba(10, 10, 10, 0.02);
+            border-radius: 16px;
+            padding: 60px 40px;
+            margin: 60px 0;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 40px;
+            text-align: center;
+        }
+        
+        .stat-item {
+            padding: 20px;
+        }
+        
+        .stat-number {
+            font-size: clamp(36px, 5vw, 56px);
+            font-weight: 900;
+            color: var(--color-primary);
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(10, 10, 10, 0.6);
+            font-weight: 600;
+        }
+        
+        .cta-section {
+            text-align: center;
+            padding: 80px 40px;
+        }
+        
+        .cta-section h2 {
+            font-size: clamp(36px, 6vw, 64px);
+            font-weight: 900;
+            margin-bottom: 24px;
+            color: var(--color-text);
+        }
+        
+        .cta-section p {
+            font-size: clamp(16px, 2vw, 20px);
+            color: rgba(10, 10, 10, 0.7);
+            margin-bottom: 40px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
 
         #canvas {
             position: absolute;
@@ -45,6 +170,7 @@
             left: 0;
             display: block;
             z-index: 1;
+            pointer-events: none;
         }
 
         .content {
@@ -259,6 +385,30 @@
                 font-size: 16px;
                 margin-bottom: 30px;
             }
+            
+            .section {
+                padding: 60px 20px;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 30px;
+            }
+            
+            .feature-card {
+                padding: 30px 20px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -298,6 +448,94 @@
             <div class="scroll-text">Scroll</div>
         </div>
     </div>
+    
+    <!-- Section 2: Features -->
+    <section class="section">
+        <h2 class="section-title">Наши решения</h2>
+        <p class="section-subtitle">
+            Комплексные IT-решения для предприятий любого масштаба
+        </p>
+        
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-card-icon">⚡</div>
+                <h3 class="feature-card-title">Высокая производительность</h3>
+                <p class="feature-card-description">
+                    Оптимизированная архитектура обеспечивает максимальную скорость работы и минимальную задержку
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-card-icon">🔐</div>
+                <h3 class="feature-card-title">Безопасность</h3>
+                <p class="feature-card-description">
+                    Enterprise-grade защита данных с многоуровневой системой безопасности и соответствием стандартам
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-card-icon">📈</div>
+                <h3 class="feature-card-title">Масштабируемость</h3>
+                <p class="feature-card-description">
+                    Горизонтальное и вертикальное масштабирование для растущего бизнеса без ограничений
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-card-icon">🌐</div>
+                <h3 class="feature-card-title">Глобальная инфраструктура</h3>
+                <p class="feature-card-description">
+                    Распределённая сеть дата-центров обеспечивает доступность 99.99% по всему миру
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-card-icon">🔧</div>
+                <h3 class="feature-card-title">Техническая поддержка</h3>
+                <p class="feature-card-description">
+                    Круглосуточная поддержка экспертов для решения любых технических вопросов
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-card-icon">💼</div>
+                <h3 class="feature-card-title">Корпоративные решения</h3>
+                <p class="feature-card-description">
+                    Индивидуальные решения под специфику вашего бизнеса с гарантией качества
+                </p>
+            </div>
+        </div>
+        
+        <div class="stats-section">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">99.99%</div>
+                    <div class="stat-label">Uptime</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-label">Поддержка</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">1000+</div>
+                    <div class="stat-label">Клиентов</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">50+</div>
+                    <div class="stat-label">Стран</div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Section 3: CTA -->
+    <section class="section cta-section">
+        <h2>Готовы начать?</h2>
+        <p>
+            Свяжитесь с нами сегодня и узнайте, как наши решения могут помочь вашему бизнесу достичь новых высот
+        </p>
+        <button class="cta-button">Связаться с нами</button>
+    </section>
 
     <script>
         class HexagonalNetwork {
@@ -454,7 +692,22 @@
                 let lastMouseX = 0;
                 let lastMouseY = 0;
                 
-                document.addEventListener('mousemove', (e) => {
+                // Get hero container position
+                const heroContainer = this.canvas.parentElement;
+                
+                const updateMousePosition = (e) => {
+                    // Get hero container bounding rect
+                    const rect = heroContainer.getBoundingClientRect();
+                    
+                    // Check if mouse is within hero section
+                    const isInHero = e.clientY >= rect.top && e.clientY <= rect.bottom &&
+                                    e.clientX >= rect.left && e.clientX <= rect.right;
+                    
+                    if (!isInHero) {
+                        this.mouse.active = false;
+                        return;
+                    }
+                    
                     // Calculate mouse velocity for particle emission
                     this.mouse.vx = e.clientX - lastMouseX;
                     this.mouse.vy = e.clientY - lastMouseY;
@@ -463,22 +716,30 @@
                     lastMouseX = e.clientX;
                     lastMouseY = e.clientY;
                     
-                    this.mouse.x = e.clientX;
-                    this.mouse.y = e.clientY;
+                    // Use coordinates relative to hero container (not viewport)
+                    this.mouse.x = e.clientX - rect.left;
+                    this.mouse.y = e.clientY - rect.top;
                     this.mouse.active = true;
-                    this.mouse.lastMoveTime = this.time; // Update last movement time
+                    this.mouse.lastMoveTime = this.time;
                     
                     // Emit particles when mouse moves (only if moving fast enough)
                     if (movementSpeed > this.mouseMovementThreshold) {
-                        this.emitParticles(e.clientX, e.clientY);
+                        this.emitParticles(this.mouse.x, this.mouse.y);
                     }
-                });
+                };
+                
+                document.addEventListener('mousemove', updateMousePosition);
 
                 document.addEventListener('mouseleave', () => {
                     this.mouse.active = false;
                 });
 
                 window.addEventListener('resize', () => this.handleResize());
+                
+                // Reset scroll on page load
+                window.addEventListener('load', () => {
+                    window.scrollTo(0, 0);
+                });
             }
             
             updateEffectIntensity() {
