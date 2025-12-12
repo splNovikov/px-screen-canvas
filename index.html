@@ -37,6 +37,7 @@
             align-items: center;
             justify-content: center;
             overflow: hidden;
+            z-index: 20; /* Поверх белого слоя */
         }
         
         .section {
@@ -47,6 +48,8 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
+            position: relative;
+            z-index: 10; /* Поверх белого слоя */
         }
         
         .section-title {
@@ -410,6 +413,186 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Mirror Buttons Section */
+        .mirror-buttons-section {
+            background: transparent; /* Прозрачный фон - видно видео */
+            border-radius: 16px;
+            padding: 60px 40px;
+            margin: 60px 0;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Видео на весь экран - задний слой */
+        #backgroundVideo {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: 0;
+            transform: scaleX(-1); /* Зеркальное отражение */
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #backgroundVideo.active {
+            opacity: 1;
+        }
+        
+        /* Белый слой поверх видео - передний слой */
+        .white-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: var(--color-secondary); /* Белый фон */
+            z-index: 1;
+            pointer-events: none; /* Пропускает клики через слой */
+            mix-blend-mode: normal;
+        }
+        
+        /* Передний слой с контентом */
+        .content-layer {
+            position: relative;
+            z-index: 10;
+        }
+
+        .mirror-buttons-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 30px;
+            position: relative;
+        }
+
+        /* Зеркальные кнопки - прозрачные "дырки" в белом слое */
+        .mirror-button {
+            position: relative;
+            padding: 16px 32px;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 2px solid rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            cursor: pointer;
+            overflow: visible;
+            transition: all 0.3s ease;
+            min-width: 150px;
+            min-height: 50px;
+            
+            /* Полностью прозрачный фон - "дырка" через которую видно видео */
+            background: transparent;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            
+            color: var(--color-text);
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+            box-shadow: none;
+            z-index: 2;
+            pointer-events: auto; /* Кнопки кликабельны */
+        }
+
+        /* Эффект блика на зеркальной поверхности */
+        .mirror-button::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 30%,
+                rgba(255, 255, 255, 0.2) 50%,
+                transparent 70%
+            );
+            transform: rotate(45deg);
+            transition: all 0.6s ease;
+            z-index: 2;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .mirror-button:hover::after {
+            opacity: 1;
+            animation: mirror-shine 1.5s ease-in-out infinite;
+        }
+
+        @keyframes mirror-shine {
+            0% {
+                transform: translateX(-100%) translateY(-100%) rotate(45deg);
+            }
+            100% {
+                transform: translateX(100%) translateY(100%) rotate(45deg);
+            }
+        }
+
+        .mirror-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 12px 40px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+            border-color: rgba(255, 255, 255, 0.7);
+        }
+
+        .mirror-button:active {
+            transform: translateY(0);
+            box-shadow: 
+                0 4px 20px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        .mirror-button span {
+            position: relative;
+            z-index: 3;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+            display: block;
+        }
+
+        .start-camera-button {
+            margin-bottom: 30px;
+            padding: 14px 40px;
+            background: var(--color-text);
+            color: var(--color-secondary);
+            border: 1px solid var(--color-text);
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .start-camera-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 50px rgba(0, 64, 128, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .mirror-buttons-section {
+                padding: 40px 20px;
+            }
+
+            .mirror-buttons-container {
+                gap: 15px;
+            }
+
+            .mirror-button {
+                padding: 12px 24px;
+                font-size: 12px;
+                min-width: 120px;
+                min-height: 45px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -528,7 +711,40 @@
         </div>
     </section>
     
-    <!-- Section 3: CTA -->
+    <!-- Section 3: Mirror Buttons -->
+    <section class="section">
+        <h2 class="section-title">Зеркальные кнопки</h2>
+        <p class="section-subtitle">
+            Кнопки с видео с веб-камеры в качестве фона
+        </p>
+        
+        <div class="mirror-buttons-section">
+            <button class="start-camera-button" id="startCameraBtn">📹 Включить камеру</button>
+            
+            <div class="mirror-buttons-container">
+                <button class="mirror-button">
+                    <span>Кнопка 1</span>
+                </button>
+                <button class="mirror-button">
+                    <span>Кнопка 2</span>
+                </button>
+                <button class="mirror-button">
+                    <span>Кнопка 3</span>
+                </button>
+                <button class="mirror-button">
+                    <span>Кнопка 4</span>
+                </button>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Видео для фона - задний слой -->
+    <video id="backgroundVideo" autoplay playsinline></video>
+    
+    <!-- Белый слой - передний слой с "дырками" для кнопок -->
+    <div class="white-overlay"></div>
+    
+    <!-- Section 4: CTA -->
     <section class="section cta-section">
         <h2>Готовы начать?</h2>
         <p>
@@ -1372,6 +1588,108 @@
         document.addEventListener('DOMContentLoaded', () => {
             const canvas = document.getElementById('canvas');
             new HexagonalNetwork(canvas);
+            
+            // Mirror Buttons with Webcam Background
+            const backgroundVideo = document.getElementById('backgroundVideo');
+            const whiteOverlay = document.querySelector('.white-overlay');
+            const startCameraBtn = document.getElementById('startCameraBtn');
+            const mirrorButtons = document.querySelectorAll('.mirror-button');
+            let stream = null;
+            
+            // Функция для создания "дырок" в белом слое используя SVG mask
+            function updateHoles() {
+                if (!whiteOverlay || mirrorButtons.length === 0) return;
+                
+                // Создаем SVG mask с прямоугольными дырками для каждой кнопки
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('width', window.innerWidth);
+                svg.setAttribute('height', window.innerHeight);
+                svg.style.position = 'absolute';
+                svg.style.top = '0';
+                svg.style.left = '0';
+                svg.style.width = '100%';
+                svg.style.height = '100%';
+                svg.style.pointerEvents = 'none';
+                
+                const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                const mask = document.createElementNS('http://www.w3.org/2000/svg', 'mask');
+                mask.setAttribute('id', 'button-holes-mask');
+                
+                // Белый прямоугольник на весь экран (видимый)
+                const whiteRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                whiteRect.setAttribute('width', '100%');
+                whiteRect.setAttribute('height', '100%');
+                whiteRect.setAttribute('fill', 'white');
+                mask.appendChild(whiteRect);
+                
+                // Черные прямоугольники для каждой кнопки (прозрачные дырки)
+                mirrorButtons.forEach(button => {
+                    const rect = button.getBoundingClientRect();
+                    const hole = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    hole.setAttribute('x', rect.left);
+                    hole.setAttribute('y', rect.top);
+                    hole.setAttribute('width', rect.width);
+                    hole.setAttribute('height', rect.height);
+                    hole.setAttribute('rx', '12'); // border-radius
+                    hole.setAttribute('ry', '12');
+                    hole.setAttribute('fill', 'black'); // Черный = прозрачный в mask
+                    mask.appendChild(hole);
+                });
+                
+                defs.appendChild(mask);
+                svg.appendChild(defs);
+                
+                // Удаляем старый SVG если есть
+                const oldSvg = whiteOverlay.querySelector('svg');
+                if (oldSvg) oldSvg.remove();
+                
+                whiteOverlay.appendChild(svg);
+                whiteOverlay.style.mask = 'url(#button-holes-mask)';
+                whiteOverlay.style.webkitMask = 'url(#button-holes-mask)';
+            }
+            
+            // Обновляем дырки при изменении размера окна или скролле
+            function handleUpdate() {
+                updateHoles();
+            }
+            
+            window.addEventListener('resize', handleUpdate);
+            window.addEventListener('scroll', handleUpdate);
+            
+            // Обновляем дырки после загрузки страницы
+            setTimeout(updateHoles, 100);
+            
+            // Запуск камеры - просто показываем видео на весь экран
+            startCameraBtn.addEventListener('click', async () => {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            facingMode: 'user',
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        } 
+                    });
+                    
+                    backgroundVideo.srcObject = stream;
+                    backgroundVideo.classList.add('active');
+                    startCameraBtn.textContent = '📹 Камера включена';
+                    startCameraBtn.disabled = true;
+                    
+                    // Обновляем дырки после включения камеры
+                    setTimeout(updateHoles, 100);
+                    
+                } catch (error) {
+                    console.error('Ошибка доступа к камере:', error);
+                    alert('Не удалось получить доступ к камере. Проверьте разрешения браузера.');
+                }
+            });
+            
+            // Очистка при закрытии страницы
+            window.addEventListener('beforeunload', () => {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+            });
         });
     </script>
 </body>
