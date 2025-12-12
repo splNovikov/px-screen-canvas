@@ -414,6 +414,27 @@
             }
         }
 
+        /* Mirror Section - просто зеркало */
+        .mirror-section {
+            height: 800px;
+            width: 100%;
+            position: relative;
+            z-index: 10;
+            background: transparent;
+            overflow: hidden;
+        }
+
+        /* Canvas для эффекта раскраски по номерам */
+        #mirrorCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* Зеркальное отражение */
+        }
+
         /* Mirror Buttons Section */
         .mirror-buttons-section {
             background: transparent; /* Прозрачный фон - видно видео */
@@ -711,7 +732,12 @@
         </div>
     </section>
     
-    <!-- Section 3: Mirror Buttons -->
+    <!-- Section 3: Mirror - просто зеркало -->
+    <section class="mirror-section">
+        <canvas id="mirrorCanvas"></canvas>
+    </section>
+    
+    <!-- Section 4: Mirror Buttons -->
     <section class="section">
         <h2 class="section-title">Зеркальные кнопки</h2>
         <p class="section-subtitle">
@@ -1594,13 +1620,27 @@
             const whiteOverlay = document.querySelector('.white-overlay');
             const startCameraBtn = document.getElementById('startCameraBtn');
             const mirrorButtons = document.querySelectorAll('.mirror-button');
+            const mirrorSection = document.querySelector('.mirror-section');
+            const mirrorCanvas = document.getElementById('mirrorCanvas');
             let stream = null;
+            let mirrorAnimationId = null;
+            let frameSkipCounter = 0;
+            const frameSkip = 2; // Обрабатываем каждый 3-й кадр (0, 1, 2 - обрабатываем на 2)
+            let cachedProcessedData = null;
+            let lastVideoTime = 0;
+            
+            // Инициализация canvas для зеркала
+            if (mirrorCanvas && mirrorSection) {
+                const rect = mirrorSection.getBoundingClientRect();
+                mirrorCanvas.width = rect.width;
+                mirrorCanvas.height = rect.height;
+            }
             
             // Функция для создания "дырок" в белом слое используя SVG mask
             function updateHoles() {
-                if (!whiteOverlay || mirrorButtons.length === 0) return;
+                if (!whiteOverlay) return;
                 
-                // Создаем SVG mask с прямоугольными дырками для каждой кнопки
+                // Создаем SVG mask с прямоугольными дырками
                 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                 svg.setAttribute('width', window.innerWidth);
                 svg.setAttribute('height', window.innerHeight);
@@ -1621,6 +1661,18 @@
                 whiteRect.setAttribute('height', '100%');
                 whiteRect.setAttribute('fill', 'white');
                 mask.appendChild(whiteRect);
+                
+                // Дырка для секции-зеркала (если есть)
+                if (mirrorSection) {
+                    const rect = mirrorSection.getBoundingClientRect();
+                    const mirrorHole = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    mirrorHole.setAttribute('x', rect.left);
+                    mirrorHole.setAttribute('y', rect.top);
+                    mirrorHole.setAttribute('width', rect.width);
+                    mirrorHole.setAttribute('height', rect.height);
+                    mirrorHole.setAttribute('fill', 'black'); // Черный = прозрачный в mask
+                    mask.appendChild(mirrorHole);
+                }
                 
                 // Черные прямоугольники для каждой кнопки (прозрачные дырки)
                 mirrorButtons.forEach(button => {
@@ -1651,10 +1703,415 @@
             // Обновляем дырки при изменении размера окна или скролле
             function handleUpdate() {
                 updateHoles();
+                // Обновляем размер canvas зеркала
+                if (mirrorCanvas && mirrorSection) {
+                    const rect = mirrorSection.getBoundingClientRect();
+                    mirrorCanvas.width = rect.width;
+                    mirrorCanvas.height = rect.height;
+                }
             }
             
             window.addEventListener('resize', handleUpdate);
             window.addEventListener('scroll', handleUpdate);
+            
+            // Генерация палитры из 1920 цветов для раскраски по номерам
+            function generatePaintByNumbersPalette() {
+                const palette = [];
+                const totalColors = 1920;
+                
+                // Добавляем серые оттенки (256 градаций)
+                for (let i = 0; i <= 255; i++) {
+                    palette.push([i, i, i]);
+                }
+                
+                // Генерируем цвета равномерно распределенные в RGB пространстве
+                // Используем более умный алгоритм для равномерного распределения
+                const remainingColors = totalColors - 256;
+                const steps = Math.ceil(Math.cbrt(remainingColors));
+                const stepSize = Math.max(1, Math.floor(256 / steps));
+                
+                for (let r = 0; r <= 255; r += stepSize) {
+                    for (let g = 0; g <= 255; g += stepSize) {
+                        for (let b = 0; b <= 255; b += stepSize) {
+                            // Пропускаем серые (они уже добавлены)
+                            const grayDiff = Math.abs(r - g) + Math.abs(g - b) + Math.abs(r - b);
+                            if (grayDiff > 15) {
+                                palette.push([r, g, b]);
+                            }
+                        }
+                    }
+                }
+                
+                // Добавляем промежуточные оттенки для более плавных переходов
+                const intermediateSteps = Math.floor(stepSize / 2);
+                if (intermediateSteps > 0 && palette.length < totalColors) {
+                    for (let r = intermediateSteps; r <= 255; r += stepSize) {
+                        for (let g = intermediateSteps; g <= 255; g += stepSize) {
+                            for (let b = intermediateSteps; b <= 255; b += stepSize) {
+                                if (palette.length >= totalColors) break;
+                                const grayDiff = Math.abs(r - g) + Math.abs(g - b) + Math.abs(r - b);
+                                if (grayDiff > 15) {
+                                    palette.push([r, g, b]);
+                                }
+                            }
+                            if (palette.length >= totalColors) break;
+                        }
+                        if (palette.length >= totalColors) break;
+                    }
+                }
+                
+                // Если все еще не хватает цветов, добавляем случайные оттенки
+                while (palette.length < totalColors) {
+                    const r = Math.floor(Math.random() * 256);
+                    const g = Math.floor(Math.random() * 256);
+                    const b = Math.floor(Math.random() * 256);
+                    const grayDiff = Math.abs(r - g) + Math.abs(g - b) + Math.abs(r - b);
+                    if (grayDiff > 10) {
+                        palette.push([r, g, b]);
+                    }
+                }
+                
+                // Ограничиваем до нужного количества
+                return palette.slice(0, totalColors);
+            }
+            
+            const paintByNumbersPalette = generatePaintByNumbersPalette();
+            
+            // Старая палитра (закомментирована, можно удалить)
+            /*
+            const paintByNumbersPalette_old = [
+                // Серые оттенки (40)
+                [255, 255, 255], [253, 253, 253], [250, 250, 250], [248, 248, 248],
+                [245, 245, 245], [243, 243, 243], [240, 240, 240], [238, 238, 238],
+                [235, 235, 235], [233, 233, 233], [230, 230, 230], [228, 228, 228],
+                [225, 225, 225], [223, 223, 223], [220, 220, 220], [218, 218, 218],
+                [215, 215, 215], [213, 213, 213], [210, 210, 210], [208, 208, 208],
+                [205, 205, 205], [200, 200, 200], [195, 195, 195], [190, 190, 190],
+                [185, 185, 185], [180, 180, 180], [175, 175, 175], [170, 170, 170],
+                [165, 165, 165], [160, 160, 160], [155, 155, 155], [150, 150, 150],
+                [145, 145, 145], [140, 140, 140], [135, 135, 135], [130, 130, 130],
+                [128, 128, 128], [120, 120, 120], [110, 110, 110], [100, 100, 100],
+                [96, 96, 96], [90, 90, 90], [80, 80, 80], [70, 70, 70],
+                [64, 64, 64], [56, 56, 56], [48, 48, 48], [40, 40, 40],
+                [32, 32, 32], [24, 24, 24], [16, 16, 16], [8, 8, 8], [0, 0, 0],
+                
+                // Красные оттенки (40)
+                [255, 0, 0], [252, 0, 0], [250, 0, 0], [248, 0, 0], [245, 0, 0],
+                [242, 0, 0], [240, 0, 0], [238, 0, 0], [235, 0, 0], [232, 0, 0],
+                [230, 0, 0], [228, 0, 0], [225, 0, 0], [222, 0, 0], [220, 0, 0],
+                [218, 0, 0], [215, 0, 0], [212, 0, 0], [210, 0, 0], [208, 0, 0],
+                [205, 0, 0], [200, 0, 0], [195, 0, 0], [190, 0, 0], [185, 0, 0],
+                [180, 0, 0], [175, 0, 0], [170, 0, 0], [165, 0, 0], [160, 0, 0],
+                [255, 20, 20], [255, 30, 30], [255, 40, 40], [255, 50, 50],
+                [255, 60, 60], [255, 70, 70], [255, 80, 80], [255, 90, 90],
+                [255, 100, 100], [255, 110, 110], [255, 120, 120], [255, 130, 130],
+                [255, 140, 140], [255, 150, 150], [255, 160, 160], [255, 170, 170],
+                [255, 180, 180], [255, 190, 190], [255, 200, 200], [255, 210, 210],
+                [255, 192, 203], [255, 187, 198], [255, 182, 193], [255, 177, 188],
+                [255, 20, 147], [255, 40, 157], [255, 60, 167], [255, 105, 180],
+                [220, 20, 60], [210, 20, 55], [200, 20, 50], [199, 21, 133],
+                [178, 34, 34], [168, 24, 24], [158, 14, 14], [139, 0, 0],
+                
+                // Оранжевые оттенки (32)
+                [255, 80, 0], [255, 85, 0], [255, 90, 0], [255, 95, 0],
+                [255, 100, 0], [255, 105, 0], [255, 110, 0], [255, 115, 0],
+                [255, 120, 0], [255, 125, 0], [255, 128, 0], [255, 130, 0],
+                [255, 135, 0], [255, 140, 0], [255, 145, 0], [255, 150, 0],
+                [255, 155, 0], [255, 160, 0], [255, 165, 0], [255, 170, 0],
+                [255, 175, 0], [255, 180, 0], [255, 185, 0], [255, 190, 0],
+                [255, 195, 0], [255, 200, 0], [255, 205, 0], [255, 210, 0],
+                [255, 215, 0], [255, 220, 0], [255, 225, 0], [255, 230, 0],
+                [255, 200, 30], [255, 190, 40], [255, 180, 50], [255, 170, 60],
+                [255, 160, 70], [255, 160, 80], [255, 150, 90], [255, 150, 100],
+                
+                // Желтые оттенки (24)
+                [255, 255, 0], [253, 255, 0], [250, 255, 0], [248, 255, 0],
+                [245, 255, 0], [243, 255, 0], [240, 255, 0], [238, 255, 0],
+                [235, 255, 0], [233, 255, 0], [230, 255, 0], [228, 255, 0],
+                [225, 255, 0], [223, 255, 0], [220, 255, 0], [218, 255, 0],
+                [215, 255, 0], [213, 255, 0], [210, 255, 0], [208, 255, 0],
+                [205, 255, 0], [200, 255, 0], [255, 255, 30], [255, 255, 50],
+                [255, 255, 70], [255, 255, 80], [255, 255, 100], [255, 255, 120],
+                [255, 255, 140], [255, 255, 150], [255, 255, 170], [255, 255, 180],
+                
+                // Зеленые оттенки (40)
+                [0, 255, 0], [0, 252, 0], [0, 250, 0], [0, 248, 0], [0, 245, 0],
+                [0, 242, 0], [0, 240, 0], [0, 238, 0], [0, 235, 0], [0, 232, 0],
+                [0, 230, 0], [0, 228, 0], [0, 225, 0], [0, 222, 0], [0, 220, 0],
+                [0, 218, 0], [0, 215, 0], [0, 212, 0], [0, 210, 0], [0, 208, 0],
+                [0, 205, 0], [0, 200, 0], [0, 195, 0], [0, 190, 0], [0, 185, 0],
+                [0, 180, 0], [0, 175, 0], [0, 170, 0], [0, 165, 0], [0, 160, 0],
+                [0, 155, 0], [0, 150, 0], [0, 145, 0], [0, 140, 0], [0, 135, 0],
+                [0, 130, 0], [0, 128, 0], [30, 255, 30], [50, 255, 50], [70, 255, 70],
+                [50, 205, 50], [100, 255, 100], [120, 255, 120], [140, 255, 140],
+                [150, 255, 150], [170, 255, 170], [180, 255, 180], [200, 255, 200],
+                [34, 139, 34], [24, 129, 24], [0, 120, 0], [0, 100, 0],
+                
+                // Голубые/Циановые оттенки (32)
+                [0, 255, 255], [0, 252, 252], [0, 250, 250], [0, 248, 248],
+                [0, 245, 245], [0, 242, 242], [0, 240, 240], [0, 238, 238],
+                [0, 235, 235], [0, 232, 232], [0, 230, 230], [0, 228, 228],
+                [0, 225, 225], [0, 222, 222], [0, 220, 220], [0, 218, 218],
+                [0, 215, 215], [0, 210, 210], [0, 205, 205], [0, 200, 200],
+                [0, 195, 195], [0, 190, 190], [0, 185, 185], [0, 180, 180],
+                [0, 175, 175], [0, 170, 170], [0, 165, 165], [0, 160, 160],
+                [0, 155, 155], [0, 150, 150], [0, 145, 145], [0, 140, 140],
+                [0, 135, 135], [0, 130, 130], [0, 128, 128], [0, 125, 125],
+                [0, 120, 120], [30, 255, 255], [50, 255, 255], [70, 255, 255],
+                [100, 255, 255], [130, 255, 255], [150, 255, 255], [180, 255, 255],
+                [200, 255, 255], [220, 255, 255],
+                
+                // Синие оттенки (40)
+                [0, 0, 255], [0, 0, 252], [0, 0, 250], [0, 0, 248], [0, 0, 245],
+                [0, 0, 242], [0, 0, 240], [0, 0, 238], [0, 0, 235], [0, 0, 232],
+                [0, 0, 230], [0, 0, 228], [0, 0, 225], [0, 0, 222], [0, 0, 220],
+                [0, 0, 218], [0, 0, 215], [0, 0, 212], [0, 0, 210], [0, 0, 208],
+                [0, 0, 205], [0, 0, 200], [0, 0, 195], [0, 0, 190], [0, 0, 185],
+                [0, 0, 180], [0, 0, 175], [0, 0, 170], [0, 0, 165], [0, 0, 160],
+                [0, 0, 155], [0, 0, 150], [0, 0, 145], [0, 0, 140], [0, 0, 135],
+                [0, 0, 130], [0, 0, 128], [20, 134, 245], [30, 144, 255], [40, 154, 255],
+                [50, 150, 255], [60, 160, 255], [70, 130, 180], [80, 140, 190],
+                [100, 149, 237], [120, 169, 247], [135, 206, 250], [155, 226, 255],
+                [173, 216, 230], [183, 226, 240], [176, 196, 222], [186, 206, 232],
+                [0, 0, 120], [0, 0, 100],
+                
+                // Фиолетовые/Пурпурные оттенки (32)
+                [128, 0, 128], [133, 0, 133], [138, 0, 138], [143, 0, 143],
+                [148, 0, 148], [148, 0, 211], [153, 0, 153], [158, 0, 158],
+                [163, 0, 163], [75, 0, 130], [80, 0, 135], [85, 0, 140],
+                [90, 0, 145], [95, 0, 150], [100, 0, 155], [105, 0, 160],
+                [138, 43, 226], [143, 48, 231], [148, 53, 236], [153, 58, 241],
+                [255, 0, 255], [250, 0, 250], [248, 0, 248], [245, 0, 245],
+                [242, 0, 242], [240, 0, 240], [238, 0, 238], [235, 0, 235],
+                [238, 130, 238], [228, 120, 228], [218, 110, 218], [208, 100, 208],
+                [200, 0, 200], [210, 0, 210], [220, 0, 220], [186, 85, 211],
+                [196, 95, 221], [206, 105, 231], [221, 160, 221], [231, 170, 231],
+                [218, 112, 214], [228, 122, 224], [199, 21, 133], [209, 31, 143],
+                
+                // Коричневые оттенки (24)
+                [165, 42, 42], [160, 37, 37], [155, 32, 32], [150, 27, 27],
+                [145, 22, 22], [140, 17, 17], [139, 69, 19], [144, 74, 24],
+                [149, 79, 29], [154, 84, 34], [159, 89, 39], [160, 82, 45],
+                [165, 87, 50], [170, 92, 55], [175, 97, 60], [180, 102, 65],
+                [210, 180, 140], [205, 175, 135], [200, 170, 130], [195, 165, 125],
+                [190, 160, 120], [188, 143, 143], [193, 148, 148], [198, 153, 153],
+                [203, 158, 158], [205, 133, 63], [200, 128, 58], [195, 123, 53],
+                [190, 118, 48], [101, 67, 33], [111, 77, 43], [120, 80, 50],
+                [130, 90, 60], [140, 100, 70],
+                
+                // Смешанные и дополнительные цвета (16)
+                [255, 228, 196], [255, 223, 191], [255, 218, 185], [255, 213, 180],
+                [255, 208, 175], [255, 203, 170], [240, 230, 140], [245, 235, 145],
+                [255, 250, 205], [255, 245, 200], [255, 240, 195], [255, 235, 190],
+                [255, 220, 160], [255, 210, 150], [255, 200, 150], [255, 190, 140],
+                [255, 180, 130], [255, 170, 120], [255, 160, 120], [255, 150, 110],
+                [255, 140, 100], [250, 150, 110], [200, 150, 100], [210, 160, 110],
+                [190, 140, 90], [180, 130, 80], [170, 120, 70], [160, 110, 60]
+            ];
+            */
+            
+            // Создаем lookup table для быстрого поиска цвета (оптимизация)
+            let colorLookupTable = null;
+            
+            function buildColorLookupTable() {
+                // Создаем таблицу для быстрого поиска (квантуем RGB в меньшие значения)
+                const quantizeStep = 8; // Квантуем до 32 уровней на канал (256/8 = 32)
+                colorLookupTable = new Array(33 * 33 * 33); // 32^3 = 32768 записей
+                
+                for (let r = 0; r <= 32; r++) {
+                    for (let g = 0; g <= 32; g++) {
+                        for (let b = 0; b <= 32; b++) {
+                            const idx = r * 33 * 33 + g * 33 + b;
+                            const realR = r * quantizeStep;
+                            const realG = g * quantizeStep;
+                            const realB = b * quantizeStep;
+                            
+                            // Находим ближайший цвет один раз и сохраняем
+                            let minDist = Infinity;
+                            let nearestColor = paintByNumbersPalette[0];
+                            
+                            for (const color of paintByNumbersPalette) {
+                                const dist = (realR - color[0]) ** 2 + 
+                                           (realG - color[1]) ** 2 + 
+                                           (realB - color[2]) ** 2;
+                                if (dist < minDist) {
+                                    minDist = dist;
+                                    nearestColor = color;
+                                }
+                            }
+                            
+                            colorLookupTable[idx] = nearestColor;
+                        }
+                    }
+                }
+            }
+            
+            // Инициализируем lookup table при загрузке
+            buildColorLookupTable();
+            
+            // Функция для быстрого нахождения ближайшего цвета через lookup table
+            function findNearestColor(r, g, b) {
+                const quantizeStep = 8;
+                const rIdx = Math.min(32, Math.floor(r / quantizeStep));
+                const gIdx = Math.min(32, Math.floor(g / quantizeStep));
+                const bIdx = Math.min(32, Math.floor(b / quantizeStep));
+                const idx = rIdx * 33 * 33 + gIdx * 33 + bIdx;
+                return colorLookupTable[idx];
+            }
+            
+            // Функция для эффекта раскраски по номерам (оптимизированная)
+            function applyPaintByNumbersEffect(imageData, width, height) {
+                // Оптимизация: обрабатываем в меньшем разрешении для скорости
+                const scaleFactor = 0.5; // Обрабатываем в 2 раза меньшем разрешении
+                const processWidth = Math.floor(width * scaleFactor);
+                const processHeight = Math.floor(height * scaleFactor);
+                
+                // Создаем временный canvas для обработки в меньшем разрешении
+                const sourceCanvas = document.createElement('canvas');
+                sourceCanvas.width = width;
+                sourceCanvas.height = height;
+                const sourceCtx = sourceCanvas.getContext('2d');
+                sourceCtx.putImageData(imageData, 0, 0);
+                
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = processWidth;
+                tempCanvas.height = processHeight;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Рисуем исходное изображение в меньшем разрешении
+                tempCtx.drawImage(sourceCanvas, 0, 0, width, height, 0, 0, processWidth, processHeight);
+                
+                // Применяем размытие для упрощения деталей
+                tempCtx.filter = 'blur(4px)'; // Меньше размытие для меньшего разрешения
+                tempCtx.drawImage(tempCanvas, 0, 0);
+                tempCtx.filter = 'none';
+                
+                // Получаем размытое изображение в меньшем разрешении
+                const blurredData = tempCtx.getImageData(0, 0, processWidth, processHeight);
+                const data = blurredData.data;
+                
+                // Заменяем цвета на ближайшие из палитры (оптимизированный цикл)
+                const dataLength = data.length;
+                for (let i = 0; i < dataLength; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    
+                    // Быстрый поиск через lookup table
+                    const nearestColor = findNearestColor(r, g, b);
+                    
+                    data[i] = nearestColor[0];
+                    data[i + 1] = nearestColor[1];
+                    data[i + 2] = nearestColor[2];
+                }
+                
+                // Применяем обработанные данные обратно на временный canvas
+                tempCtx.putImageData(blurredData, 0, 0);
+                
+                // Масштабируем обратно до исходного размера
+                const resultCanvas = document.createElement('canvas');
+                resultCanvas.width = width;
+                resultCanvas.height = height;
+                const resultCtx = resultCanvas.getContext('2d');
+                resultCtx.imageSmoothingEnabled = true;
+                resultCtx.drawImage(tempCanvas, 0, 0, processWidth, processHeight, 0, 0, width, height);
+                
+                return resultCtx.getImageData(0, 0, width, height);
+            }
+            
+            // Функция для обнаружения краев (edge detection)
+            function detectEdges(ctx, imageData) {
+                const data = imageData.data;
+                const width = imageData.width;
+                const height = imageData.height;
+                const edgeData = new ImageData(width, height);
+                
+                // Простой оператор Собеля для обнаружения краев
+                const sobelX = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
+                const sobelY = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
+                
+                for (let y = 1; y < height - 1; y++) {
+                    for (let x = 1; x < width - 1; x++) {
+                        let gx = 0, gy = 0;
+                        
+                        for (let ky = -1; ky <= 1; ky++) {
+                            for (let kx = -1; kx <= 1; kx++) {
+                                const idx = ((y + ky) * width + (x + kx)) * 4;
+                                const gray = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+                                const kernelIdx = (ky + 1) * 3 + (kx + 1);
+                                gx += gray * sobelX[kernelIdx];
+                                gy += gray * sobelY[kernelIdx];
+                            }
+                        }
+                        
+                        const magnitude = Math.sqrt(gx * gx + gy * gy);
+                        const edgeValue = magnitude > 60 ? 0 : 255; // Черные края, белый фон
+                        
+                        const idx = (y * width + x) * 4;
+                        edgeData.data[idx] = edgeValue;
+                        edgeData.data[idx + 1] = edgeValue;
+                        edgeData.data[idx + 2] = edgeValue;
+                        edgeData.data[idx + 3] = 255;
+                    }
+                }
+                
+                return edgeData;
+            }
+            
+            // Функция для отрисовки зеркала с эффектом раскраски по номерам (оптимизированная)
+            function drawMirror() {
+                if (!mirrorCanvas || !backgroundVideo || backgroundVideo.readyState !== backgroundVideo.HAVE_ENOUGH_DATA) {
+                    mirrorAnimationId = requestAnimationFrame(drawMirror);
+                    return;
+                }
+                
+                const ctx = mirrorCanvas.getContext('2d');
+                const rect = mirrorSection.getBoundingClientRect();
+                
+                // Обновляем размер canvas если секция изменила размер
+                if (mirrorCanvas.width !== rect.width || mirrorCanvas.height !== rect.height) {
+                    mirrorCanvas.width = rect.width;
+                    mirrorCanvas.height = rect.height;
+                    cachedProcessedData = null; // Сбрасываем кэш при изменении размера
+                }
+                
+                // Проверяем, изменилось ли видео (для кэширования)
+                const currentVideoTime = backgroundVideo.currentTime;
+                const videoChanged = Math.abs(currentVideoTime - lastVideoTime) > 0.1;
+                
+                // Обрабатываем только каждый N-й кадр или если видео изменилось
+                frameSkipCounter++;
+                const shouldProcess = (frameSkipCounter % (frameSkip + 1) === 0) || videoChanged || !cachedProcessedData;
+                
+                if (shouldProcess) {
+                    // Очищаем canvas
+                    ctx.clearRect(0, 0, rect.width, rect.height);
+                    
+                    // Рисуем видео
+                    ctx.save();
+                    ctx.scale(-1, 1); // Зеркальное отражение
+                    ctx.drawImage(
+                        backgroundVideo,
+                        -rect.width, 0,
+                        rect.width, rect.height
+                    );
+                    ctx.restore();
+                    
+                    // Получаем данные изображения
+                    const imageData = ctx.getImageData(0, 0, rect.width, rect.height);
+                    
+                    // Применяем эффект раскраски по номерам
+                    cachedProcessedData = applyPaintByNumbersEffect(imageData, rect.width, rect.height);
+                    lastVideoTime = currentVideoTime;
+                }
+                
+                // Всегда рисуем кэшированные данные
+                if (cachedProcessedData) {
+                    ctx.putImageData(cachedProcessedData, 0, 0);
+                }
+                
+                mirrorAnimationId = requestAnimationFrame(drawMirror);
+            }
             
             // Обновляем дырки после загрузки страницы
             setTimeout(updateHoles, 100);
@@ -1678,6 +2135,11 @@
                     // Обновляем дырки после включения камеры
                     setTimeout(updateHoles, 100);
                     
+                    // Запускаем обработку зеркала с эффектом раскраски по номерам
+                    backgroundVideo.addEventListener('loadedmetadata', () => {
+                        drawMirror();
+                    });
+                    
                 } catch (error) {
                     console.error('Ошибка доступа к камере:', error);
                     alert('Не удалось получить доступ к камере. Проверьте разрешения браузера.');
@@ -1688,6 +2150,9 @@
             window.addEventListener('beforeunload', () => {
                 if (stream) {
                     stream.getTracks().forEach(track => track.stop());
+                }
+                if (mirrorAnimationId) {
+                    cancelAnimationFrame(mirrorAnimationId);
                 }
             });
         });
